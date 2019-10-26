@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<meta http-equiv="Content-type" content="text/html; charset=utf-8">
+	<meta name="format-detection" content="telephone=no">
+  <meta name="robots" content="noindex,nofollow">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+	<title>Braille Japanese (Kana only)</title>
+	<style type="text/css">
+  <!--
+  * { font-family: monospace; }
+  -->
+  </style>
+
+	<script type="text/javascript" charset="utf-8">
+	
+//バイナリを日本語点字へ変換
+function bin2tenjiHiragana(bin,flag) {
+  // flag=="switch" で順番変更
+  if (bin.length%6!=0
+    || bin.match(/[^01]/)) { return null; }
+  // ①④
+  // ②⑤
+  // ③⑥
+  map={};
+  map["1"]="あ";
+  map["12"]="い";
+  map["14"]="う";
+  map["124"]="え";
+  map["24"]="お";
+
+  map["16"]="か";
+  map["126"]="き";
+  map["146"]="く";
+  map["1246"]="け";
+  map["246"]="こ";
+
+  map["156"]="さ";
+  map["1256"]="し";
+  map["1456"]="す";
+  map["12456"]="せ";
+  map["2456"]="そ";
+
+  map["135"]="た";
+  map["1235"]="ち";
+  map["1345"]="つ";
+  map["12345"]="て";
+  map["2345"]="と";
+
+  map["13"]="な";
+  map["123"]="に";
+  map["134"]="ぬ";
+  map["1234"]="ね";
+  map["234"]="の";
+
+  map["136"]="は";
+  map["1236"]="ひ";
+  map["1346"]="ふ";
+  map["12346"]="へ";
+  map["2346"]="ほ";
+
+  map["1356"]="ま";
+  map["12356"]="み";
+  map["13456"]="む";
+  map["123456"]="め";
+  map["23456"]="も";
+
+  map["34"]="や";
+  map["346"]="ゆ";
+  map["345"]="よ";
+
+  map["15"]="ら";
+  map["125"]="り";
+  map["145"]="る";
+  map["1245"]="れ";
+  map["245"]="ろ";
+
+  map["3"]="わ";
+  map["23"]="ゐ";
+  //map["235"]="ゑ";  // 「！」と同じ
+  map["35"]="を";
+
+  map["356"]="ん";
+
+  map["2"]="っ";
+  map["25"]="ー";
+  map["56"]="、";
+  map["256"]="。";
+  map["26"]="？";
+  map["235"]="！";
+
+  // 前置符
+  map["5"]="濁音";  // ga
+  map["6"]="半濁音";  // pa
+  map["4"]="拗音";  // kya
+  map["45"]="濁音拗音";  // gya
+  map["46"]="半濁音拗音";  // pya
+
+  var tmp=bin.match(/.{6}/g);
+  var result="";
+
+  if (flag=="switch") {
+    // ①②
+    // ③④
+    // ⑤⑥
+    // 135246
+    for (var i in tmp) {
+      tmp[i]=tmp[i].replace(
+        /(.)(.)(.)(.)(.)(.)/, "$1$3$5$2$4$6");
+    }
+  } else if (flag=="orikaeshi") {
+    // ①⑥
+    // ②⑤
+    // ③④
+    // 123654
+    for (var i in tmp) {
+      tmp[i]=tmp[i].replace(
+        /(.)(.)(.)(.)(.)(.)/, "$1$2$3$6$5$4");
+    }
+  } else if (flag=="uzumaki") {
+    // ①②
+    // ⑥③
+    // ⑤④
+    // 165234
+    for (var i in tmp) {
+      tmp[i]=tmp[i].replace(
+        /(.)(.)(.)(.)(.)(.)/, "$1$6$5$2$3$4");
+    }
+  } else if (flag=="3line") {
+    // ①②③…
+    // ④⑤⑥…
+    // ⑦⑧⑨…
+    var binNew="";
+    var n=bin.length/3;
+    var nRE=new RegExp("[01]{"+n+"}","g");
+    var lines=bin.match(nRE);
+    for (var i=0; i<n; i++) {
+      for (var j in lines) {
+        binNew+=lines[j][i];
+      }
+    }
+    tmp=binNew.match(/.{6}/g);
+  }
+
+  for (var j in tmp) {
+    var str="";
+    for (var i in tmp[j]) {
+      if (tmp[j][i].match(/1/)) {
+        str+=Number(i)+1;
+      }
+    }
+    if (map[str]) {
+      result+=map[str];
+    } else {
+      result+="∎";
+    }
+  }
+
+  // 前置詞処理
+  result = result.replace(/(半濁音拗音|濁音拗音|拗音|半濁音|濁音)(.)/g ,zenchishi);
+  return result;
+}
+
+function zenchishi(match, p1, p2, offset, string){
+  var zenchi = p1;
+  var moji = p2;
+  if(zenchi=="濁音"){
+    if(moji=='か'){
+      return 'が';
+    } else if(moji=='き'){
+      return 'ぎ';
+    } else if(moji=='く'){
+      return 'ぐ';
+    } else if(moji=='け'){
+      return 'げ';
+    } else if(moji=='こ'){
+      return 'ご';
+    } else if(moji=='さ'){
+      return 'ざ';
+    } else if(moji=='し'){
+      return 'じ';
+    } else if(moji=='す'){
+      return 'ず';
+    } else if(moji=='せ'){
+      return 'ぜ';
+    } else if(moji=='そ'){
+      return 'ぞ';
+    } else if(moji=='た'){
+      return 'だ';
+    } else if(moji=='ち'){
+      return 'ぢ';
+    } else if(moji=='つ'){
+      return 'づ';
+    } else if(moji=='て'){
+      return 'で';
+    } else if(moji=='と'){
+      return 'ど';
+    } else if(moji=='は'){
+      return 'ば';
+    } else if(moji=='ひ'){
+      return 'び';
+    } else if(moji=='ふ'){
+      return 'ぶ';
+    } else if(moji=='へ'){
+      return 'べ';
+    } else if(moji=='ほ'){
+      return 'ぼ';
+    } else {
+      return "∎";
+    }
+  } else if(zenchi=="半濁音"){
+    if(moji=='は'){
+      return 'ぱ';
+    } else if(moji=='ひ'){
+      return 'ぴ';
+    } else if(moji=='ふ'){
+      return 'ぷ';
+    } else if(moji=='へ'){
+      return 'ぺ';
+    } else if(moji=='ほ'){
+      return 'ぽ';
+    } else {
+      return "∎";
+    }
+  } else if(zenchi=="拗音"){
+    if(moji=='か'){
+      return 'きゃ';
+    } else if(moji=='く'){
+      return 'きゅ';
+    } else if(moji=='こ'){
+      return 'きょ';
+    } else if(moji=='さ'){
+      return 'しゃ';
+    } else if(moji=='す'){
+      return 'しゅ';
+    } else if(moji=='そ'){
+      return 'しょ';
+    } else if(moji=='た'){
+      return 'ちゃ';
+    } else if(moji=='つ'){
+      return 'ちゅ';
+    } else if(moji=='と'){
+      return 'ちょ';
+    } else if(moji=='な'){
+      return 'にゃ';
+    } else if(moji=='ぬ'){
+      return 'にゅ';
+    } else if(moji=='の'){
+      return 'にょ';
+    } else if(moji=='は'){
+      return 'ひゃ';
+    } else if(moji=='ふ'){
+      return 'ひゅ';
+    } else if(moji=='ほ'){
+      return 'ひょ';
+    } else if(moji=='ま'){
+      return 'みゃ';
+    } else if(moji=='む'){
+      return 'みゅ';
+    } else if(moji=='も'){
+      return 'みょ';
+    } else if(moji=='ら'){
+      return 'りゃ';
+    } else if(moji=='る'){
+      return 'りゅ';
+    } else if(moji=='ろ'){
+      return 'りょ';
+    } else {
+      return "∎";
+    }
+  } else if(zenchi=="濁音拗音"){
+    if(moji=='か'){
+      return 'ぎゃ';
+    } else if(moji=='く'){
+      return 'ぎゅ';
+    } else if(moji=='こ'){
+      return 'ぎょ';
+    } else if(moji=='さ'){
+      return 'じゃ';
+    } else if(moji=='す'){
+      return 'じゅ';
+    } else if(moji=='そ'){
+      return 'じょ';
+    } else if(moji=='た'){
+      return 'ぢゃ';
+    } else if(moji=='つ'){
+      return 'ぢゅ';
+    } else if(moji=='と'){
+      return 'ぢょ';
+    } else if(moji=='は'){
+      return 'ぴゃ';
+    } else if(moji=='ふ'){
+      return 'びゅ';
+    } else if(moji=='ほ'){
+      return 'びょ';
+    } else {
+      return "∎";
+    }
+  } else if(zenchi=="半濁音拗音"){
+    if(moji=='は'){
+      return 'ぴゃ';
+    } else if(moji=='ふ'){
+      return 'ぴゅ';
+    } else if(moji=='ほ'){
+      return 'ぴょ';
+    } else {
+      return "∎";
+    }
+  } else {
+    return "∎";
+  }
+}
+
+
+// -------------------------------------------------------
+
+function BrailleBruteForce(str) {
+    
+  /*
+  // test用
+  // 縦に3つずつタイプ
+	var str="011011010000000011100111101110000111101011011101100101101100100111010011000001";
+	// 横に2つずつタイプ
+	var str="001111001000000101110101110110010101100111011011110001110010110101001101000001";
+	// 折り返しタイプ
+	var str="011110010000000110100111101011000111101110011101100101101001100111010110000100";
+	// 3行タイプ
+	var str="000000111101100111111100001110010101010110000001110011000101100111110110010101";
+  */
+  
+  var result=[];
+  var targetElm=document.getElementById('resultString');
+  
+  function GoBraille() {
+    result.push( bin2tenjiHiragana(str) );
+    result.push( bin2tenjiHiragana(str,"switch") );
+    result.push( bin2tenjiHiragana(str,"orikaeshi") );
+    result.push( bin2tenjiHiragana(str,"uzumaki") );
+    result.push( bin2tenjiHiragana(str,"3line") );
+  }
+  
+  // モールス信号の場合はバイナリに変換
+  if (str.match(/^[.\-\s]+$/)) {
+   str=str.replace(/\./g, "0").replace(/-/g, "1").replace(/\s/g, "");
+  }
+  
+  // スペースを削除
+  str=str.replace(/\s+/g, "");
+
+  if (str.match(/[^01]/)) {
+    targetElm.value="binary...?";
+  } else if (str.length%6!=0) {
+    targetElm.value="binary length: "+str.length+"\n"+str.length+"%6 = "+str.length%6+"\n6で割れません (Not divisible by 6)";
+  } else {
+    result.push( "*** normal ***" );
+    GoBraille();
+    
+    // reverse
+    str=str.split("").reverse().join("");
+    result.push( "\n*** reverse ***" );
+    GoBraille();
+  
+    // 0/1 swap
+    str=str.split("").reverse().join("").replace(/0/g,"2").replace(/1/g,"0").replace(/2/g,"1" );
+    result.push( "\n*** swap ***" );
+    GoBraille();
+  
+    // reverse
+    str=str.split("").reverse().join("");
+    result.push( "\n*** swap reverse ***" );
+    GoBraille();
+        
+    /*
+    for (var i in result) {
+      result[i]=result[i].replace(/</ig, "&lt;");
+      result[i]=result[i].replace(/>/ig, "&gt;");
+    }
+    */
+    
+    targetElm.value=result.join("\n");
+  }
+}
+
+  
+	</script>
+</head>
+<body>
+	<h1>Braille Japanese (Kana only)</h1>
+	<div>
+	  <h3>enter binary string</h3>
+	  <input type="text" id="inputBin" value="" style="width: 90%" onchange="BrailleBruteForce(this.value)" onautofocus>
+	  <input type="button" value="go Braille" onClick="BrailleBruteForce(document.getElementById('inputBin').value)"><br>
+    <span style="font-sze: 50%">モールス信号でもOK (Morse code OK)</span>
+
+	</div>
+	<div>
+    <h3>result strings</h3>
+    <textarea id="resultString" cols=40 rows=30 style="font-family: monospace; font-size: 100%" readonly></textarea><br>
+    <span style="font-size: 70%">
+    1: 縦に3つずつ<br>
+    2: 横に2つずつ<br>
+    3: 縦に3つずつ折り返し<br>
+    4: 横2つから縦に渦巻き<br>
+    5: 3行に分けて縦3つずつ
+    </span>
+	</div>
+</body>
+</html>
+

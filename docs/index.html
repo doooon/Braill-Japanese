@@ -6,7 +6,7 @@
 	<meta name="format-detection" content="telephone=no">
   <meta name="robots" content="noindex,nofollow">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
-	<title>Braille Japanese (Kana only)</title>
+	<title>Braille Japanese</title>
 	<style type="text/css">
   <!--
   * { font-family: monospace; }
@@ -85,20 +85,96 @@ function bin2tenjiHiragana(bin,flag) {
 
   map["2"]="っ";
   map["25"]="ー";
-  map["56"]="、";
-  map["256"]="。";
-  map["26"]="？";
+  //map["56"]="、"; //外字符と同じ。評価するため不使用
+  //map["256"]="。";  //合拗音濁音で評価するため不使用
+  //map["26"]="？"; //合拗音で評価するため不使用
   map["235"]="！";
+  map[""]="　"; //全角スペース
+
 
   // 前置符
   map["5"]="濁音";  // ga
   map["6"]="半濁音";  // pa
   map["4"]="拗音";  // kya
-  map["45"]="濁音拗音";  // gya
-  map["46"]="半濁音拗音";  // pya
+  map["45"]="濁拗音";  // 濁音拗音 gya
+  map["46"]="半濁拗音";  // 半濁音拗音 pya
+  map["26"]="合拗音";  // ？　疑問符　whi kwa
+  map["256"]="合拗濁音";  // 。句点　合拗音濁音 gwa va
+  map["456"]="半濁濁拗音";  // 半濁音濁音拗音 でゅ　ゔゅ
+
+  // モード切り替え
+  map["56"]="外字符";   // 外字符モード切り替え　続く1文字だけ 、読点　外字符
+  map["236"]="外字引用始";   // 外字引用符 始まり
+  map["356"]="外字引用終";   // 外字引用符 終わり
+  map["3456"]="数符";   // 数符モード切り替え　続く4文字まで
+
+  
+  // 数符モード　（4文字まで)
+  var map_n={};
+  map_n["2"]=".";   // 小数点
+  map_n["3"]=",";   // 位取り点
+  map_n["36"]="第一つなぎ符";   // 第一つなぎ符
+  map_n["1"]="1";
+  map_n["12"]="2";
+  map_n["14"]="3";
+  map_n["145"]="4";
+  map_n["15"]="5";
+  map_n["124"]="6";
+  map_n["1245"]="7";
+  map_n["125"]="8";
+  map_n["24"]="9";
+  map_n["245"]="0";
+
+
+
+
+  // 外字符モード
+  var map_a={};
+  map_a["6"]="大文字符";   // 大文字符
+  //map_a["6"]="二重大文字符";   // 二重大文字符 (大文字符を２回連続して配置すること)
+  map_a["1"]="a";
+  map_a["12"]="b";
+  map_a["14"]="c";
+  map_a["145"]="d";
+  map_a["15"]="e";
+  map_a["124"]="f";
+  map_a["1245"]="g";
+  map_a["125"]="h";
+  map_a["24"]="i";
+  map_a["245"]="j";
+  map_a["13"]="k";
+  map_a["123"]="l";
+  map_a["134"]="m";
+  map_a["1345"]="n";
+  map_a["135"]="o";
+  map_a["1234"]="p";
+  map_a["12345"]="q";
+  map_a["1235"]="r";
+  map_a["234"]="s";
+  map_a["2345"]="t";
+  map_a["136"]="u";
+  map_a["1236"]="v";
+  map_a["2456"]="w";
+  map_a["1346"]="x";
+  map_a["13456"]="y";
+  map_a["1356"]="z";
+  map_a["36"]="-";   // alphabet_lock時ではないときは「つなぎ符」
+  map_a["25"]=":";
+  map_a["23"]=";";
+  map_a["2"]=",";
+  map_a["256"]=".";
+  map_a["236"]="?";
+  map_a["235"]="!";
+  map_a["3"]="'";
+  map_a[""]=" ";
+
+
 
   var tmp=bin.match(/.{6}/g);
   var result="";
+  var mode=""; // かなモード, alphabet, alphabet_lock, number
+  var num_mode_count=0;
+  var oomoji="";  // oomoji, oomoji_lock
 
   if (flag=="switch") {
     // ①②
@@ -144,29 +220,107 @@ function bin2tenjiHiragana(bin,flag) {
   }
 
   for (var j in tmp) {
+
     var str="";
     for (var i in tmp[j]) {
       if (tmp[j][i].match(/1/)) {
         str+=Number(i)+1;
       }
     }
-    if (map[str]) {
+
+    
+    if (str=="3456") {        // 数符　つづく4文字まで
+      mode='number';
+      if(num_mode_count>0){ // 重ね数字
+        result+="、";
+      }
+      num_mode_count=0;       // 4文字までをカウントする
+    } else if (mode.match(/number/)) {
+      if (str=="36") {   // つなぎ符なのでmumberモード解除
+        mode="";
+      } else {
+        if(str=="3"||str=="2"){ // 位取りか小数点
+          num_mode_count=0;
+        } else {
+          num_mode_count++;
+        }
+        result+=map_n[str];
+        if(num_mode_count>4){   // 4文字を超えたのでmumberモード解除
+          mode="";
+        }
+      }
+    } else if (str=="56") {   // 外字符　続く1文字だけをアルファベットにする
+      mode='alphabet';
+    } else if (str=="236") {   // 外字引用符 始まり
+      mode='alphabet_lock';
+    } else if (str=="356" && mode=='alphabet_lock') {   // 外字引用符 終わり
+      mode='';
+      oomoji='';
+    } else if (mode.match(/alphabet/)) {
+      if (str=="" && mode!="alphabet_lock") {   // 空白なのでalphabetモード解除
+        mode="";
+        oomoji="";
+      } else if (str=="36" && mode!="alphabet_lock") {   // つなぎ符なのでalphabetモード解除
+        mode="";
+        oomoji="";
+      } else if (str=="" && oomoji.match(/oomoji/)) {   // 空白なのでalphabetモード解除
+        oomoji="";
+        if(mode!="alphabet_lock"){
+          mode="";
+        }
+      } else if(str=="6" && oomoji==""){ // 大文字符
+        oomoji="oomoji";
+      } else if(str=="6" && oomoji=="oomoji"){ // 二重大文字符
+        oomoji="oomoji_lock";
+      } else if(str!="6"){  // 大文字符ではない
+        if(oomoji.match(/oomoji/)){
+          try {
+            result+=map_a[str].toUpperCase();
+          } catch(error) {
+            result+=map_a[str];
+          }
+        } else {
+          result+=map_a[str];
+        }
+        if(oomoji!="oomoji_lock"){
+          oomoji=""; // 大文字解除
+        }
+        if(mode!="alphabet_lock" && oomoji!="oomoji_lock"){
+          mode="";  // alphabetモード解除
+        }  
+      }
+    } else if (map[str] && !mode.match(/number|alphabet/)) {
       result+=map[str];
     } else {
       result+="∎";
     }
+    
+
+
   }
 
+
+
+
   // 前置詞処理
-  result = result.replace(/(半濁音拗音|濁音拗音|拗音|半濁音|濁音)(.)/g ,zenchishi);
-  return result;
+  result = result.replace(/(半濁濁拗音|合拗濁音|合拗音|半濁拗音|濁拗音|拗音|半濁音|濁音|読点)([^半合濁拗外])/g ,zenchishi);
+  
+  // 最適化
+  result = result.replace(/(合拗音)/g, "？");
+  result = result.replace(/(合拗濁音)/g, "。");
+  result = result.replace(/(外字符)/g, "、");
+  result = result.replace(/(半濁濁拗音|半濁拗音|濁拗音|拗音|半濁音|濁音|数符)/g, "");
+
+  return result;
 }
 
 function zenchishi(match, p1, p2, offset, string){
   var zenchi = p1;
   var moji = p2;
   if(zenchi=="濁音"){
-    if(moji=='か'){
+    if(moji=='う'){
+      return 'ゔ';
+    } else if(moji=='か'){
       return 'が';
     } else if(moji=='き'){
       return 'ぎ';
@@ -224,34 +378,50 @@ function zenchishi(match, p1, p2, offset, string){
       return "∎";
     }
   } else if(zenchi=="拗音"){
-    if(moji=='か'){
+    if(moji=='え'){
+      return 'いぇ';
+    } else if(moji=='か'){
       return 'きゃ';
     } else if(moji=='く'){
       return 'きゅ';
+    } else if(moji=='け'){
+      return 'きぇ';
     } else if(moji=='こ'){
       return 'きょ';
     } else if(moji=='さ'){
       return 'しゃ';
+    } else if(moji=='し'){
+      return 'すぃ';
     } else if(moji=='す'){
       return 'しゅ';
+    } else if(moji=='せ'){
+      return 'しぇ';
     } else if(moji=='そ'){
       return 'しょ';
     } else if(moji=='た'){
       return 'ちゃ';
+    } else if(moji=='ち'){
+      return 'てぃ';
     } else if(moji=='つ'){
       return 'ちゅ';
+    } else if(moji=='て'){
+      return 'ちぇ';
     } else if(moji=='と'){
       return 'ちょ';
     } else if(moji=='な'){
       return 'にゃ';
     } else if(moji=='ぬ'){
       return 'にゅ';
+    } else if(moji=='ね'){
+      return 'にぇ';
     } else if(moji=='の'){
       return 'にょ';
     } else if(moji=='は'){
       return 'ひゃ';
     } else if(moji=='ふ'){
       return 'ひゅ';
+    } else if(moji=='へ'){
+      return 'ひぇ';
     } else if(moji=='ほ'){
       return 'ひょ';
     } else if(moji=='ま'){
@@ -269,7 +439,7 @@ function zenchishi(match, p1, p2, offset, string){
     } else {
       return "∎";
     }
-  } else if(zenchi=="濁音拗音"){
+  } else if(zenchi=="濁拗音"){
     if(moji=='か'){
       return 'ぎゃ';
     } else if(moji=='く'){
@@ -278,12 +448,18 @@ function zenchishi(match, p1, p2, offset, string){
       return 'ぎょ';
     } else if(moji=='さ'){
       return 'じゃ';
+    } else if(moji=='し'){
+      return 'ずぃ';
     } else if(moji=='す'){
       return 'じゅ';
+    } else if(moji=='せ'){
+      return 'じぇ';
     } else if(moji=='そ'){
       return 'じょ';
     } else if(moji=='た'){
       return 'ぢゃ';
+    } else if(moji=='ち'){
+      return 'でぃ';
     } else if(moji=='つ'){
       return 'ぢゅ';
     } else if(moji=='と'){
@@ -297,13 +473,107 @@ function zenchishi(match, p1, p2, offset, string){
     } else {
       return "∎";
     }
-  } else if(zenchi=="半濁音拗音"){
-    if(moji=='は'){
+  } else if(zenchi=="半濁拗音"){
+    if(moji=='つ'){
+      return 'てゅ';
+    } else if(moji=='ゆ'){
+      return 'ふゅ';
+    } else if(moji=='よ'){
+      return 'ふょ';
+    } else if(moji=='は'){
       return 'ぴゃ';
     } else if(moji=='ふ'){
       return 'ぴゅ';
     } else if(moji=='ほ'){
       return 'ぴょ';
+    } else {
+      return "∎";
+    }
+  } else if(zenchi=="合拗音"){
+    if(moji=='あ'){
+      return 'うぁ';
+    } else if(moji=='い'){
+      return 'うぃ';
+    } else if(moji=='え'){
+      return 'うぇ';
+    } else if(moji=='お'){
+      return 'うぉ';
+    } else if(moji=='か'){
+      return 'くぁ';
+    } else if(moji=='き'){
+      return 'くぃ';
+    } else if(moji=='く'){
+      return 'くぅ';
+    } else if(moji=='け'){
+      return 'くぇ';
+    } else if(moji=='こ'){
+      return 'くぉ';
+    } else if(moji=='た'){
+      return 'つぁ';
+    } else if(moji=='ち'){
+      return 'つぃ';
+    } else if(moji=='つ'){
+      return 'とぅ';
+    } else if(moji=='て'){
+      return 'つぇ';
+    } else if(moji=='と'){
+      return 'つぉ';
+    } else if(moji=='は'){
+      return 'ふぁ';
+    } else if(moji=='ひ'){
+      return 'ふぃ';
+    } else if(moji=='ふ'){
+      return 'ふぅ';
+    } else if(moji=='へ'){
+      return 'ふぇ';
+    } else if(moji=='ほ'){
+      return 'ふぉ';
+    } else if(moji=='　'){  //全角スペース
+      return '？';
+    } else {
+      return "∎";
+    }
+  } else if(zenchi=="合拗濁音"){
+    if(moji=='か'){
+      return 'ぐぁ';
+    } else if(moji=='き'){
+      return 'ぐぃ';
+    } else if(moji=='く'){
+      return 'ぐぅ';
+    } else if(moji=='け'){
+      return 'ぐぇ';
+    } else if(moji=='こ'){
+      return 'ぐぉ';
+    } else if(moji=='つ'){
+      return 'どぅ';
+    } else if(moji=='は'){
+      return 'ゔぁ';
+    } else if(moji=='ひ'){
+      return 'ゔぃ';
+    } else if(moji=='ふ'){
+      return 'ゔぅ';
+    } else if(moji=='へ'){
+      return 'ゔぇ';
+    } else if(moji=='ほ'){
+      return 'ゔぉ';
+    } else if(moji=='　'){  //全角スペース
+      return '。';
+    } else {
+      return "∎";
+    }
+  } else if(zenchi=="半濁濁拗音"){
+    if(moji=='つ'){
+      return 'でゅ';
+    } else if(moji=='ゆ'){
+      return 'ゔゅ';
+    } else if(moji=='よ'){
+      return 'ゔょ';
+    } else {
+      return "∎";
+    }
+  } else if(zenchi=="外字符"){
+    if(moji=='　'){ //全角スペース
+      return '、';
     } else {
       return "∎";
     }
@@ -386,7 +656,7 @@ function BrailleBruteForce(str) {
 	</script>
 </head>
 <body>
-	<h1>Braille Japanese (Kana only)</h1>
+	<h1>Braille Japanese</h1>
 	<div>
 	  <h3>enter binary string</h3>
 	  <input type="text" id="inputBin" value="" style="width: 90%" onchange="BrailleBruteForce(this.value)" onautofocus>
